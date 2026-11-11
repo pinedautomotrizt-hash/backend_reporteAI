@@ -142,6 +142,8 @@ export class GeminiRedactorInforme implements RedactorInforme {
     ].join('\n');
   }
 
+
+
   /** El JSON llega como texto en candidates[0].content.parts (se ignoran las partes de "pensamiento"). */
   private extraer(json: unknown): Omit<Redaccion, 'modelo'> | null {
     const partes = (json as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] })

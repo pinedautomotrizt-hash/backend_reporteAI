@@ -9,7 +9,8 @@ import { DomainError } from '../../domain/errors/DomainError.js';
  *
  * Reglas:
  *  - Si lo escrito parece placa ("bxq755", "BXQ 755") se normaliza a "BXQ-755".
- *  - El jefe de taller ve todas las OTs; el técnico solo las asignadas a él.
+ *  - El jefe de taller ve todas las OTs DE SU SEDE (el admin, todas);
+ *    el técnico solo las asignadas a él.
  */
 export class BuscarOrdenesTrabajo {
   constructor(private readonly ordenes: OrdenTrabajoProvider) {}
@@ -21,11 +22,12 @@ export class BuscarOrdenesTrabajo {
     }
     limite = Math.min(limite, 50);
 
+    // Cada uno busca solo en su sede (el admin, localId null, en todas)
     if (esJefe(usuario)) {
-      return this.ordenes.buscar(this.normalizar(termino), limite);
+      return this.ordenes.buscar(this.normalizar(termino), limite, usuario.localId);
     }
     // Para técnicos se pide más y se filtra, para no perder sus OTs entre las de otros
-    const todas = await this.ordenes.buscar(this.normalizar(termino), 50);
+    const todas = await this.ordenes.buscar(this.normalizar(termino), 50, usuario.localId);
     return todas.filter((ot) => ot.tecnicoId === usuario.tecnicoId).slice(0, limite);
   }
 

@@ -20,6 +20,7 @@ import type { ControlPersonalClient } from './ControlPersonalClient.js';
 interface OtApi {
   id: number;
   nroOrden: string;
+  localId: number | null;
   localNombre: string | null;
   estado: string;
   fechaApertura: string | null;
@@ -57,8 +58,9 @@ interface PaginaApi<T> {
 export class ControlPersonalOrdenTrabajoAdapter implements OrdenTrabajoProvider {
   constructor(private readonly client: ControlPersonalClient) {}
 
-  async buscar(termino: string, limite: number): Promise<OrdenTrabajoResumen[]> {
+  async buscar(termino: string, limite: number, localId?: number | null): Promise<OrdenTrabajoResumen[]> {
     const qs = new URLSearchParams({ busqueda: termino, page: '0', size: String(limite) });
+    if (localId) qs.set('localId', String(localId));
     const pagina = await this.client.get<PaginaApi<OtApi>>(`/api/ordenes-trabajo?${qs}`);
     return (pagina?.content ?? []).map(aResumen);
   }
@@ -73,6 +75,7 @@ export class ControlPersonalOrdenTrabajoAdapter implements OrdenTrabajoProvider 
     return {
       id: ot.id,
       nroOrden: ot.nroOrden,
+      localId: ot.localId ?? null,
       local: ot.localNombre,
       estado: ot.estado,
       fechaApertura: ot.fechaApertura,
@@ -110,6 +113,7 @@ function aResumen(ot: OtApi): OrdenTrabajoResumen {
     clienteNombre: ot.clienteNombre,
     tecnicoId: ot.tecnicoId,
     tecnicoNombre: ot.tecnicoNombre,
+    localId: ot.localId ?? null,
   };
 }
 

@@ -1,4 +1,4 @@
-import type { ProveedorIdentidad } from '../ports/ProveedorIdentidad.js';
+import type { IdentidadExterna, ProveedorIdentidad } from '../ports/ProveedorIdentidad.js';
 import type { EmisorTokens } from '../ports/EmisorTokens.js';
 import type { UsuarioSesion } from '../../domain/entities/Usuario.js';
 import { AccesoDenegadoError, CredencialesInvalidasError } from '../../domain/errors/AuthErrors.js';
@@ -22,19 +22,28 @@ export class IniciarSesion {
     const persona = await this.identidad.autenticar(email.trim().toLowerCase(), password);
     if (!persona) throw new CredencialesInvalidasError();
 
-    const usuario = await this.resolverRol(persona.usuarioId, persona.nombre, persona.email, persona.rolSistema);
+    const usuario = await this.resolverRol(persona);
     const token = await this.tokens.emitir(usuario);
     return { token, usuario };
   }
 
-  private async resolverRol(id: number, nombre: string, email: string, rolSistema: string): Promise<UsuarioSesion> {
-    if (this.rolesJefe.includes(rolSistema.toLowerCase())) {
-      return { id, nombre, email, rol: 'JEFE_TALLER', tecnicoId: null, localId: null };
+  private async resolverRol(p: IdentidadExterna): Promise<UsuarioSesion> {
+    const { usuarioId: id, nombre, email } = p;
+    if (this.rolesJefe.includes(p.rolSistema.toLowerCase())) {
+      // admin -> sin local (todas las sedes); jefe_tecnico -> solo su sede
+      if (p.rolSistema.toLowerCase() !== 'admin' && p.localId === null) {
+        throw new AccesoDenegadoError('Tu usuario no tiene una sede asignada en Control de Personal.');
+      }
+      const localId = p.rolSistema.toLowerCase() === 'admin' ? null : p.localId;
+      return { id, nombre, email, rol: 'JEFE_TALLER', tecnicoId: null, localId, localNombre: localId ? p.localNombre : null };
     }
 
     const ficha = await this.identidad.buscarTecnicoPorUsuario(id);
     if (ficha?.activo) {
-      return { id, nombre: ficha.nombre, email, rol: 'TECNICO', tecnicoId: ficha.tecnicoId, localId: ficha.localId };
+      return {
+        id, nombre: ficha.nombre, email, rol: 'TECNICO', tecnicoId: ficha.tecnicoId,
+        localId: ficha.localId ?? p.localId, localNombre: ficha.localNombre ?? p.localNombre,
+      };
     }
 
     throw new AccesoDenegadoError('Tu usuario no tiene acceso a esta aplicación. Consulta con el jefe de taller.');

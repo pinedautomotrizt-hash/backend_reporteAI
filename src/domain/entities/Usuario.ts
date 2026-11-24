@@ -11,7 +11,14 @@ export interface UsuarioSesion {
   email: string;
   rol: Rol;
   tecnicoId: number | null; // solo técnicos: es el que aparece en OT.tecnicoId
+  // Sede (local) del usuario en Control de Personal: 1 Trujillo, 2 Callao...
+  // null = ve todas las sedes (solo el admin).
   localId: number | null;
+  localNombre: string | null;
 }
+
+/** ¿El usuario puede ver datos de esa sede? (null en el usuario = todas) */
+export const veLocal = (u: UsuarioSesion, localId: number | null | undefined) =>
+  u.localId === null || u.localId === localId;
 
 export const esJefe = (u: UsuarioSesion) => u.rol === 'JEFE_TALLER';

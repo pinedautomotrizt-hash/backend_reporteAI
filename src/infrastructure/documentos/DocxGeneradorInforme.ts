@@ -17,6 +17,8 @@ import {
   WidthType,
   type IBorderOptions,
 } from 'docx';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import sharp from 'sharp';
 import type { GeneradorDocumento, ImagenParaDocumento } from '../../application/ports/GeneradorDocumento.js';
 import type { ContenidoInforme, ItemCantidad } from '../../domain/entities/InformeTecnico.js';
@@ -101,6 +103,12 @@ export class DocxGeneradorInforme implements GeneradorDocumento {
   readonly extension = 'docx';
   readonly tipoMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+  /**
+   * Firmas escaneadas del jefe, una por sede: firmas/LIMA.jpg, firmas/TRUJILLO.jpg...
+   * (se busca por la sede que sale en el informe). Si no hay archivo, queda la línea para firmar a mano.
+   */
+  constructor(private readonly carpetaFirmas = join(process.cwd(), 'firmas')) {}
+
   async generar(c: ContenidoInforme, imagenes: ImagenParaDocumento[]): Promise<Buffer> {
     const fotos = new Map(imagenes.map((i) => [i.fotoId, i.datos]));
 
@@ -126,7 +134,7 @@ export class DocxGeneradorInforme implements GeneradorDocumento {
       espacio(),
       this.tablaItems('MANO DE OBRA:', 'HORA/HOMBRE', c.manoObra),
       espacio(4),
-      this.firmas(c),
+      await this.firmas(c),
     ];
 
     // Cada sección empieza en página nueva y repite el encabezado; la numeración continúa.
@@ -307,7 +315,7 @@ export class DocxGeneradorInforme implements GeneradorDocumento {
     ]);
   }
 
-  private firmas(c: ContenidoInforme) {
+  private async firmas(c: ContenidoInforme) {
     const mitad = ANCHO / 2;
     const bloque = (nombre: string, cargo: string) => [
       espacio(14),
@@ -315,16 +323,31 @@ export class DocxGeneradorInforme implements GeneradorDocumento {
       texto(nombre, { negrita: true, alinear: AlignmentType.CENTER }),
       texto(cargo, { negrita: true, tam: 14, alinear: AlignmentType.CENTER }),
     ];
+    // El sello escaneado ya trae firma, nombre y cargo: va solo, sin la línea ni el texto.
+    const sello = await this.firmaEscaneada(c.sede);
+    const jefe = sello
+      ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [await this.imagen(sello, 230, 100)] })]
+      : bloque(c.jefeNombre, c.jefeCargo);
     return tabla([mitad, mitad], [
       // cantSplit: la caja de firmas nunca se parte entre dos páginas
       new TableRow({
         cantSplit: true,
         children: [
-          celda(bloque(c.jefeNombre, c.jefeCargo), { ancho: mitad }),
-          celda(bloque(c.tecnicoNombre, 'TÉCNICO DIAGNÓSTICO'), { ancho: mitad }),
+          celda(jefe, { ancho: mitad, vertical: VerticalAlign.BOTTOM }),
+          celda(bloque(c.tecnicoNombre || ' ', 'TÉCNICO DIAGNÓSTICO'), { ancho: mitad, vertical: VerticalAlign.BOTTOM }),
         ],
       }),
     ]);
+  }
+
+  private async firmaEscaneada(sede: string): Promise<Buffer | null> {
+    const nombre = sede.trim().toUpperCase().replace(/[^A-Z0-9 ]+/g, '');
+    if (!nombre) return null;
+    try {
+      return await readFile(join(this.carpetaFirmas, `${nombre}.jpg`));
+    } catch {
+      return null;
+    }
   }
 
   // ---------- anexo fotográfico ----------

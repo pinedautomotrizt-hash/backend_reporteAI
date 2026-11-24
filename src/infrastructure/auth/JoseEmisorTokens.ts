@@ -17,7 +17,7 @@ export class JoseEmisorTokens implements EmisorTokens {
   }
 
   async emitir(u: UsuarioSesion): Promise<string> {
-    return new SignJWT({ nombre: u.nombre, email: u.email, rol: u.rol, tecnicoId: u.tecnicoId, localId: u.localId })
+    return new SignJWT({ nombre: u.nombre, email: u.email, rol: u.rol, tecnicoId: u.tecnicoId, localId: u.localId, localNombre: u.localNombre })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(String(u.id))
       .setIssuedAt()
@@ -35,6 +35,7 @@ export class JoseEmisorTokens implements EmisorTokens {
         rol: p.rol as Rol,
         tecnicoId: (p.tecnicoId as number | null) ?? null,
         localId: (p.localId as number | null) ?? null,
+        localNombre: (p.localNombre as string | null) ?? null,
       };
     } catch {
       return null; // firma inválida, vencido o mal formado

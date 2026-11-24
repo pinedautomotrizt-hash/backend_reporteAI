@@ -4,6 +4,8 @@ import { DomainError } from '../../../domain/errors/DomainError.js';
 import type { ReporteRepository } from '../../ports/ReporteRepository.js';
 import type { AlmacenamientoArchivos } from '../../ports/AlmacenamientoArchivos.js';
 import type { ProcesadorImagenes } from '../../ports/ProcesadorImagenes.js';
+import type { Notificador } from '../../ports/Notificador.js';
+import type { Reporte } from '../../../domain/entities/Reporte.js';
 import { reporteADTO } from '../../dto/ReporteDTO.js';
 import { cargarReporte } from './cargarReporte.js';
 
@@ -19,6 +21,9 @@ export class EditarReporte {
     private readonly reportes: ReporteRepository,
     private readonly archivos: AlmacenamientoArchivos,
     private readonly imagenes: ProcesadorImagenes,
+    private readonly notificador: Notificador,
+    /** URL del frontend, para el enlace "Revisar" del aviso. */
+    private readonly urlApp: string,
   ) {}
 
   async actualizarRequerimiento(u: UsuarioSesion, id: string, texto: string) {
@@ -72,8 +77,26 @@ export class EditarReporte {
 
   async enviar(u: UsuarioSesion, id: string) {
     const r = await cargarReporte(this.reportes, u, id);
+    const reenvio = r.estado === 'OBSERVADO';
     r.enviar(u);
     await this.reportes.guardar(r);
+    this.avisar(r, reenvio); // sin await: el técnico no espera al WhatsApp
     return reporteADTO(r, this.archivos);
+  }
+
+  /** Aviso al jefe. Si falla, solo se registra: el reporte ya quedó enviado. */
+  private avisar(r: Reporte, reenvio: boolean) {
+    const d = r.datos();
+    const mensaje = [
+      reenvio ? '🔁 *Reporte corregido y reenviado*' : '📋 *Reporte técnico enviado*',
+      '',
+      `👨‍🔧 Técnico: ${d.tecnicoNombre}`,
+      `🚗 Placa: ${d.ot.placa} · OT ${d.ot.nroOrden}`,
+      `🔧 Servicio: ${d.ot.servicio ?? '—'}`,
+      `📷 Fotos: ${d.fotos.length}`,
+      '',
+      `Revisar: ${this.urlApp}/reportes/${d.id}`,
+    ].join('\n');
+    this.notificador.notificar(mensaje).catch((e) => console.error(`Aviso WhatsApp no enviado (reporte ${d.id}):`, (e as Error).message));
   }
 }

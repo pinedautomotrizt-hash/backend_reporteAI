@@ -11,6 +11,7 @@ interface TecnicoApi {
   usuarioEmail?: string | null;
   nombre: string;
   localId: number | null;
+  localNombre?: string | null;
   activo: boolean;
 }
 
@@ -44,6 +45,8 @@ export class ControlPersonalIdentidadAdapter implements ProveedorIdentidad {
       nombre: res.usuario?.nombre ?? String(jwt.nombre ?? email),
       email: res.usuario?.email ?? String(jwt.sub ?? email),
       rolSistema: res.usuario?.rol ?? String(jwt.rol ?? ''),
+      localId: res.usuario?.localId ?? null,
+      localNombre: res.usuario?.localNombre ?? null,
     };
   }
 
@@ -58,6 +61,7 @@ export class ControlPersonalIdentidadAdapter implements ProveedorIdentidad {
       nombre: t.nombre,
       email: t.usuarioEmail ?? null,
       localId: t.localId,
+      localNombre: t.localNombre ?? null,
       activo: t.activo,
     }));
   }

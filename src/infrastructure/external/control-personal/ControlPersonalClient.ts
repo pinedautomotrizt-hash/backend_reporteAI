@@ -88,5 +88,5 @@ export class ControlPersonalClient {
 export interface RespuestaLogin {
   token: string;
   expiresInMs?: number;
-  usuario?: { id: number; nombre: string; email: string; rol: string };
+  usuario?: { id: number; nombre: string; email: string; rol: string; localId?: number | null; localNombre?: string | null };
 }

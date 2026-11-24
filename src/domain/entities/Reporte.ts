@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DomainError } from '../errors/DomainError.js';
 import { AccesoDenegadoError } from '../errors/AuthErrors.js';
-import { esJefe, type UsuarioSesion } from './Usuario.js';
+import { esJefe, veLocal, type UsuarioSesion } from './Usuario.js';
 
 /**
  * REPORTE TÉCNICO: lo que el técnico arma con fotos sobre el vehículo de una OT
@@ -29,6 +29,8 @@ export interface DatosOT {
   kilometraje: number | null;
   servicio: string | null;
   clienteNombre: string;
+  localId: number | null; // sede de la OT (null en reportes antiguos)
+  localNombre: string | null;
 }
 
 export interface Foto {
@@ -117,10 +119,13 @@ export class Reporte {
     return u.id === this.props.usuarioId;
   }
 
-  /** El autor siempre lo ve; el jefe lo ve solo cuando ya fue enviado (los borradores son privados). */
+  /**
+   * El autor siempre lo ve; el jefe lo ve solo cuando ya fue enviado (los borradores
+   * son privados) y si es de SU sede (el admin ve todas).
+   */
   puedeVer(u: UsuarioSesion) {
     if (this.esAutor(u)) return true;
-    return esJefe(u) && this.props.estado !== 'BORRADOR';
+    return esJefe(u) && this.props.estado !== 'BORRADOR' && veLocal(u, this.props.ot.localId);
   }
 
   // ---------- acciones del técnico ----------

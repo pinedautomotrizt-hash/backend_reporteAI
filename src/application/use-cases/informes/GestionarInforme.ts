@@ -15,9 +15,11 @@ import { cargarReporte } from '../reportes/cargarReporte.js';
 
 /** Datos fijos del taller que van en todos los informes (vienen de .env). */
 export interface DatosTaller {
-  jefeNombre: string; // "ING. NIXON A. QUISPE ACOSTA"
+  jefeNombre: string; // "NIXON A. QUISPE ACOSTA"
   jefeCargo: string; // "Jefe de taller - Trujillo"
   responsable: string; // "Nixon Quispe"
+  sede: string; // "TRUJILLO": sede a la que pertenecen la firma y el responsable de arriba
+  nombresSede: Record<string, string>; // { CALLAO: 'LIMA' }: cómo se muestra cada sede en el informe
 }
 
 /**
@@ -67,11 +69,22 @@ export class GestionarInforme {
     const v = ot?.vehiculo;
     const hoy = new Date();
 
+    // "Pineda Callao" -> "CALLAO" -> se muestra "LIMA". La firma de .env es de SU sede
+    // (Trujillo); en las demás firma el jefe técnico que genera el informe.
+    const sedeOT = (r.ot.localNombre ?? ot?.local ?? '').replace(/^pineda\s*/i, '').trim().toUpperCase() || this.taller.sede;
+    const sede = this.taller.nombresSede[sedeOT] ?? sedeOT;
+    const firmaEnv = sedeOT === this.taller.sede;
+    const firma = {
+      responsable: (firmaEnv && this.taller.responsable) || jefe.nombre,
+      jefeNombre: (firmaEnv && this.taller.jefeNombre) || jefe.nombre,
+      jefeCargo: firmaEnv ? this.taller.jefeCargo : `Jefe de taller - ${sede.charAt(0)}${sede.slice(1).toLowerCase()}`,
+    };
+
     const contenido: ContenidoInforme = {
       motivo: redaccion.motivo,
-      sede: (ot?.local ?? '').replace(/^pineda\s*/i, '').toUpperCase() || 'TRUJILLO',
+      sede,
       fecha: hoy.toISOString().slice(0, 10),
-      responsable: this.taller.responsable || jefe.nombre,
+      responsable: firma.responsable,
       nroOrden: r.ot.nroOrden,
       tituloFotoPrincipal: redaccion.tituloFotoPrincipal,
 
@@ -106,9 +119,11 @@ export class GestionarInforme {
         .map((f, i) => ({ fotoId: f.id, leyenda: leyenda(i + 1) || f.descripcion || `Foto ${i + 1}` }))
         .slice(fotos.length > 1 ? 1 : 0),
 
-      jefeNombre: this.taller.jefeNombre || jefe.nombre,
-      jefeCargo: this.taller.jefeCargo,
-      tecnicoNombre: r.tecnicoNombre,
+      jefeNombre: firma.jefeNombre,
+      jefeCargo: firma.jefeCargo,
+      // Técnico de la OT (Trujillo y Lima igual). Si no hay, el que hizo el reporte;
+      // nunca el jefe (los reportes que creó el jefe tienen tecnicoId 0).
+      tecnicoNombre: ot?.tecnicoNombre || (r.tecnicoId ? r.tecnicoNombre : ''),
     };
 
     const previo = await this.informes.obtener(reporteId);

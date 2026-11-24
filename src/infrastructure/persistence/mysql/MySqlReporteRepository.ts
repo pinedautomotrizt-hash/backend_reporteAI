@@ -20,13 +20,14 @@ export class MySqlReporteRepository implements ReporteRepository {
 
       await cx.query(
         `INSERT INTO reportes (id, estado, ot_id, nro_orden, placa, vehiculo, vin, anio, kilometraje, servicio,
-           cliente_nombre, tecnico_id, tecnico_nombre, usuario_id, requerimiento, creado_en, actualizado_en, enviado_en)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           cliente_nombre, local_id, local_nombre, tecnico_id, tecnico_nombre, usuario_id, requerimiento,
+           creado_en, actualizado_en, enviado_en)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON DUPLICATE KEY UPDATE estado = VALUES(estado), requerimiento = VALUES(requerimiento),
            actualizado_en = VALUES(actualizado_en), enviado_en = VALUES(enviado_en)`,
         [
           d.id, d.estado, d.ot.otId, d.ot.nroOrden, d.ot.placa, d.ot.vehiculo, d.ot.vin, d.ot.anio,
-          d.ot.kilometraje, d.ot.servicio, d.ot.clienteNombre, d.tecnicoId, d.tecnicoNombre, d.usuarioId,
+          d.ot.kilometraje, d.ot.servicio, d.ot.clienteNombre, d.ot.localId, d.ot.localNombre, d.tecnicoId, d.tecnicoNombre, d.usuarioId,
           d.requerimiento, d.creadoEn, d.actualizadoEn, d.enviadoEn,
         ],
       );
@@ -85,6 +86,8 @@ export class MySqlReporteRepository implements ReporteRepository {
         kilometraje: fila.kilometraje,
         servicio: fila.servicio,
         clienteNombre: fila.cliente_nombre,
+        localId: fila.local_id ?? null,
+        localNombre: fila.local_nombre ?? null,
       },
       tecnicoId: fila.tecnico_id,
       tecnicoNombre: fila.tecnico_nombre,
@@ -136,6 +139,7 @@ export class MySqlReporteRepository implements ReporteRepository {
     if (f.estados?.length) { where.push('r.estado IN (?)'); params.push(f.estados); }
     if (f.placa) { where.push('r.placa LIKE ?'); params.push(`%${f.placa}%`); }
     if (f.tecnicoId !== undefined) { where.push('r.tecnico_id = ?'); params.push(f.tecnicoId); }
+    if (f.localId !== undefined) { where.push('r.local_id = ?'); params.push(f.localId); }
     const sqlWhere = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const [[filas], [conteo]] = await Promise.all([

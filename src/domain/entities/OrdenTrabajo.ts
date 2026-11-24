@@ -43,12 +43,14 @@ export interface OrdenTrabajoResumen {
   clienteNombre: string;
   tecnicoId: number | null;
   tecnicoNombre: string | null;
+  localId: number | null;
 }
 
 /** OT completa: para crear el reporte y, después, el informe con IA */
 export interface OrdenTrabajo {
   id: number;
   nroOrden: string;
+  localId: number | null; // sede (1 Trujillo, 2 Callao...)
   local: string | null;
   estado: string;
   fechaApertura: string | null;

@@ -8,6 +8,8 @@ export interface IdentidadExterna {
   nombre: string;
   email: string;
   rolSistema: string; // rol tal cual viene del sistema externo ("admin", ...)
+  localId: number | null; // sede asignada; null = todas (admin)
+  localNombre: string | null;
 }
 
 export interface FichaTecnico {
@@ -16,6 +18,7 @@ export interface FichaTecnico {
   nombre: string;
   email: string | null;
   localId: number | null;
+  localNombre: string | null;
   activo: boolean;
 }
 

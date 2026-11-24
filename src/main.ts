@@ -14,6 +14,7 @@ import { MySqlInformeRepository } from './infrastructure/persistence/mysql/MySql
 import { GeminiRedactorInforme } from './infrastructure/ia/GeminiRedactorInforme.js';
 import { SinIaRedactorInforme } from './infrastructure/ia/SinIaRedactorInforme.js';
 import { DocxGeneradorInforme } from './infrastructure/documentos/DocxGeneradorInforme.js';
+import { CallMeBotNotificador, SinNotificador } from './infrastructure/notificaciones/CallMeBotNotificador.js';
 import { GestionarInforme } from './application/use-cases/informes/GestionarInforme.js';
 import { BuscarOrdenesTrabajo } from './application/use-cases/BuscarOrdenesTrabajo.js';
 import { ObtenerOrdenTrabajo } from './application/use-cases/ObtenerOrdenTrabajo.js';
@@ -59,6 +60,13 @@ const redactor = env.GEMINI_API_KEY
       timeoutSegundos: env.GEMINI_TIMEOUT_SEGUNDOS,
     })
   : new SinIaRedactorInforme();
+// Aviso automático por WhatsApp al jefe cuando un técnico envía su reporte.
+// Oculto por ahora (un solo número para todas las sedes): se activa con CALLMEBOT_ACTIVO=true.
+const whatsappListo = env.CALLMEBOT_ACTIVO && env.WHATSAPP_AVISOS && env.CALLMEBOT_APIKEY;
+const notificador = whatsappListo
+  ? new CallMeBotNotificador({ telefono: env.WHATSAPP_AVISOS, apiKey: env.CALLMEBOT_APIKEY })
+  : new SinNotificador();
+if (!whatsappListo) console.warn('Avisos por WhatsApp (CallMeBot) desactivados');
 if (!env.GEMINI_API_KEY) console.warn('GEMINI_API_KEY vacío: los informes se generarán SIN IA');
 
 // 3. Casos de uso: reciben puertos, no saben qué adaptador hay detrás
@@ -66,13 +74,15 @@ const iniciarSesion = new IniciarSesion(identidad, tokens, env.ROLES_JEFE);
 const buscarOrdenesTrabajo = new BuscarOrdenesTrabajo(ordenesProvider);
 const obtenerOrdenTrabajo = new ObtenerOrdenTrabajo(ordenesProvider);
 const crearReporte = new CrearReporte(obtenerOrdenTrabajo, reportesRepo, archivos);
-const editarReporte = new EditarReporte(reportesRepo, archivos, imagenes);
+const editarReporte = new EditarReporte(reportesRepo, archivos, imagenes, notificador, env.FRONTEND_URL[0]);
 const revisarReporte = new RevisarReporte(reportesRepo, archivos);
 const consultarReportes = new ConsultarReportes(reportesRepo, archivos);
 const gestionarInforme = new GestionarInforme(reportesRepo, informesRepo, ordenesProvider, archivos, redactor, documento, {
   jefeNombre: env.INFORME_JEFE_NOMBRE,
   jefeCargo: env.INFORME_JEFE_CARGO,
   responsable: env.INFORME_RESPONSABLE,
+  sede: env.INFORME_SEDE,
+  nombresSede: env.INFORME_SEDE_NOMBRES,
 });
 
 // 4. Adaptador de entrada (HTTP)

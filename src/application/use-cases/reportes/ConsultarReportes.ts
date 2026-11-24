@@ -17,7 +17,7 @@ export interface ConsultaHistorial {
 /**
  * CASOS DE USO de consulta:
  *  - Técnico: "mi perfil" -> todos SUS reportes (incluye borradores).
- *  - Jefe: historial de TODOS los técnicos (sin borradores ajenos).
+ *  - Jefe: historial de todos los técnicos DE SU SEDE (sin borradores ajenos; el admin ve todas).
  */
 export class ConsultarReportes {
   constructor(
@@ -38,6 +38,7 @@ export class ConsultarReportes {
     if (esJefe(u)) {
       filtro.excluirBorradores = true;
       filtro.tecnicoId = q.tecnicoId;
+      if (u.localId !== null) filtro.localId = u.localId; // jefe de sede: solo la suya
     } else {
       filtro.usuarioId = u.id; // el técnico solo ve lo suyo, sin importar lo que pida
     }

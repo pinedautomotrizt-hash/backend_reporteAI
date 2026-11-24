@@ -49,9 +49,11 @@ npm run dev             # http://localhost:4000  (las tablas se crean solas)
 | `JWT_SECRET` | Texto aleatorio largo y **distinto** al de desarrollo |
 | `CONTROL_PERSONAL_URL` | `https://controlpersonalback-production.up.railway.app` |
 | `CONTROL_PERSONAL_EMAIL` / `_PASSWORD` | Cuenta de servicio (recomendado: usuario solo para esta integración) |
-| `ROLES_JEFE` | Roles de Control de Personal que entran como jefe (ej. `admin`) |
+| `ROLES_JEFE` | Roles de Control de Personal que entran como jefe: `admin,jefe_tecnico` (admin ve todas las sedes; jefe técnico solo la suya) |
 | `GEMINI_API_KEY` | Clave de Google AI Studio |
-| `INFORME_JEFE_NOMBRE` / `_CARGO` / `INFORME_RESPONSABLE` | Firma del informe |
+| `INFORME_JEFE_NOMBRE` / `_CARGO` / `INFORME_RESPONSABLE` | Firma del informe de la sede `INFORME_SEDE` |
+| `INFORME_SEDE` | Sede de esa firma (`TRUJILLO`). Las demás sedes firman con su jefe técnico |
+| `CALLMEBOT_ACTIVO` | `true` para avisar por WhatsApp (por defecto `false`, oculto) |
 
 `PORT` lo pone Railway automáticamente. Generar `JWT_SECRET`:
 

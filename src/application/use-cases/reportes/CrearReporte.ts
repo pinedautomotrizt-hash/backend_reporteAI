@@ -37,11 +37,14 @@ export class CrearReporte {
         kilometraje: v.kilometraje,
         servicio: ot.servicio,
         clienteNombre: ot.cliente.nombre,
+        localId: ot.localId,
+        localNombre: ot.local,
       },
       usuario,
       {
         id: usuario.tecnicoId ?? ot.tecnicoId ?? 0,
-        nombre: usuario.tecnicoId ? usuario.nombre : (ot.tecnicoNombre ?? usuario.nombre),
+        // Si lo crea el jefe, el técnico es el de la OT (nunca el jefe); sin técnico asignado queda vacío
+        nombre: usuario.tecnicoId ? usuario.nombre : (ot.tecnicoNombre ?? ''),
       },
     );
     await this.reportes.guardar(reporte);

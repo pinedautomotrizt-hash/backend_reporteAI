@@ -7,6 +7,7 @@ export interface FiltroReportes {
   estados?: EstadoReporte[];
   placa?: string;
   tecnicoId?: number;
+  localId?: number; // solo reportes de esa sede
   limite: number;
   desde: number; // offset para paginar
 }

@@ -8,8 +8,8 @@ import type { OrdenTrabajo, OrdenTrabajoResumen } from '../../domain/entities/Or
  * de datos o un mock para pruebas, sin cambiar los casos de uso.
  */
 export interface OrdenTrabajoProvider {
-  /** Busca por número de OT o por placa. */
-  buscar(termino: string, limite: number): Promise<OrdenTrabajoResumen[]>;
+  /** Busca por número de OT o por placa. Con localId, solo OTs de esa sede. */
+  buscar(termino: string, limite: number, localId?: number | null): Promise<OrdenTrabajoResumen[]>;
 
   /** OT completa con sus actividades, o null si no existe. */
   obtenerPorId(id: number): Promise<OrdenTrabajo | null>;
